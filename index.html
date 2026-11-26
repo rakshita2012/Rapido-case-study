@@ -1,0 +1,868 @@
+<untrusted-document-4e926ece1407><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Every Ride, Verified: The Ride-Along</title>
+<meta name="description" content="Ride along on a Rapido bike taxi commute: the problems, the numbers and five fixes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Manrope:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout idea: a fixed 3D night road behind, chapters scroll over it like stops on a route; a route rail on the right tracks the ride. */
+:root{
+  --night:#0B0E17;
+  --panel:rgba(12,15,24,.78);
+  --cream:#F3EEDD;
+  --muted:#A8ADBB;
+  --yellow:#F9C80E;
+  --coral:#FF7A59;
+  --cyan:#5CD6E0;
+  --line:rgba(243,238,221,.14);
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:Manrope,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--night)}
+html.lenis,html.lenis body{height:auto}
+.lenis.lenis-smooth{scroll-behavior:auto!important}
+body{background:var(--night);color:var(--cream);font-family:var(--body);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
+.vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at 50% 55%,transparent 45%,rgba(5,6,10,.75) 100%)}
+.speed{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 55%,transparent 30%,rgba(5,6,10,.9) 100%)}
+
+/* header */
+.top{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:18px clamp(16px,3vw,40px);pointer-events:none}
+.brand{font-family:var(--display);font-weight:900;font-size:22px;letter-spacing:.02em;text-transform:uppercase;pointer-events:auto;text-decoration:none;display:flex;align-items:center;gap:10px}
+.brand i{width:12px;height:12px;border-radius:50%;background:var(--yellow);box-shadow:0 0 14px var(--yellow)}
+.deck-link{pointer-events:auto;font-size:13px;font-weight:700;text-decoration:none;background:var(--yellow);color:#14120A;padding:10px 16px;border-radius:999px}
+.deck-link:hover{background:#ffd84a}
+.deck-link:focus-visible,.brand:focus-visible,.cta a:focus-visible{outline:2px solid var(--cream);outline-offset:3px}
+
+/* route rail */
+.rail{position:fixed;right:clamp(12px,2vw,28px);top:50%;transform:translateY(-50%);z-index:5;list-style:none;display:flex;flex-direction:column;gap:14px;padding-left:16px;border-left:1px solid var(--line)}
+.rail li{position:relative;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);transition:color .4s}
+.rail li::before{content:"";position:absolute;left:-21px;top:50%;width:9px;height:9px;margin-top:-4.5px;border-radius:50%;background:var(--night);border:1px solid var(--muted);transition:background .4s,border-color .4s,box-shadow .4s}
+.rail li.on{color:var(--cream)}
+.rail li.on::before{background:var(--yellow);border-color:var(--yellow);box-shadow:0 0 10px var(--yellow)}
+
+/* chapters */
+main{position:relative;z-index:2}
+.chap{min-height:120vh;display:flex;align-items:center;padding:12vh clamp(16px,5vw,80px)}
+.chap[data-side="right"]{justify-content:flex-end;padding-right:clamp(120px,14vw,220px)}
+.chap[data-side="center"]{justify-content:center;text-align:center}
+.panel{width:min(520px,100%);background:var(--panel);backdrop-filter:blur(14px) saturate(1.1);-webkit-backdrop-filter:blur(14px) saturate(1.1);border:1px solid var(--line);border-radius:22px;padding:clamp(22px,3vw,36px);display:flex;flex-direction:column;gap:16px}
+.panel.wide{width:min(980px,100%)}
+.tag{align-self:flex-start;font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--yellow);display:flex;gap:10px;align-items:center}
+.tag b{font-weight:500;color:#14120A;background:var(--yellow);padding:3px 8px;border-radius:6px}
+.tag.bad{color:var(--coral)} .tag.bad b{background:var(--coral)}
+.tag.good{color:var(--cyan)} .tag.good b{background:var(--cyan)}
+h1,h2{font-family:var(--display);font-weight:900;text-transform:uppercase;letter-spacing:.005em;text-wrap:balance}
+h1{font-size:clamp(64px,11vw,168px);line-height:.86}
+h1 em{font-style:normal;color:var(--yellow)}
+h2{font-size:clamp(36px,4.6vw,64px);line-height:.95}
+h3{font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:.02em}
+p{font-size:16px;line-height:1.6;color:var(--muted)}
+p strong{color:var(--cream);font-weight:700}
+.big{white-space:nowrap;font-family:var(--display);font-weight:900;font-size:clamp(68px,7.4vw,112px);line-height:.85;color:var(--yellow);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.big.bad{color:var(--coral)}
+.big-cap{font-size:15px;color:var(--cream);line-height:1.5}
+.src{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:#7F8596;line-height:1.5}
+.src a{color:#9FA6B8}
+.hero-sub{font-size:18px;max-width:560px;margin:0 auto;color:var(--cream)}
+.hero .tag{align-self:center}
+.cue{margin-top:12px;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:10px}
+.cue i{width:1px;height:44px;background:linear-gradient(var(--yellow),transparent);animation:cue 1.8s ease-in-out infinite}
+@keyframes cue{0%{transform:scaleY(.3);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}100%{transform:scaleY(.3);transform-origin:bottom}}
+.hmw{border-left:3px solid var(--yellow);padding-left:16px;color:var(--cream);font-size:18px;line-height:1.5}
+
+/* mock UI bits */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.compare div{border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px}
+.compare small{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.compare strong{font-size:16px}
+.compare .no{border-color:var(--coral)} .compare .no small{color:var(--coral)}
+.toast{display:flex;gap:12px;align-items:center;border:1px solid var(--coral);border-radius:14px;padding:14px}
+.toast i{width:10px;height:10px;border-radius:50%;background:var(--coral);flex-shrink:0;animation:ping 1.4s ease-out infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(255,122,89,.6)}100%{box-shadow:0 0 0 14px rgba(255,122,89,0)}}
+.toast span{font-size:15px;color:var(--cream)} .toast small{display:block;font-size:13px;color:var(--muted)}
+ul.facts{list-style:none;display:flex;flex-direction:column;gap:10px}
+ul.facts li{font-size:15px;line-height:1.5;color:var(--muted);padding-left:18px;position:relative}
+ul.facts li::before{content:"";position:absolute;left:0;top:.62em;width:8px;height:2px;background:var(--yellow)}
+ul.facts.bad li::before{background:var(--coral)}
+ul.facts.good li::before{background:var(--cyan)}
+ul.facts li strong{color:var(--cream)}
+
+/* numbers dashboard */
+.dash{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.dash div{border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:6px;text-align:left}
+.dash .n{font-family:var(--display);font-weight:900;font-size:clamp(44px,5vw,68px);line-height:.9;color:var(--yellow);font-variant-numeric:tabular-nums}
+.dash .n.bad{color:var(--coral)}
+.dash .lbl{font-size:13px;line-height:1.45;color:var(--muted)}
+
+/* users */
+.sides{display:grid;grid-template-columns:1fr 1fr;gap:14px;text-align:left}
+.side{border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.side .row{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:baseline}
+.side .row b{font-family:var(--display);font-weight:900;font-size:34px;color:var(--yellow);font-variant-numeric:tabular-nums}
+.side .row span{font-size:13px;line-height:1.45;color:var(--muted)}
+.log{border:1px dashed var(--yellow);border-radius:14px;padding:12px 14px;font-size:14px;color:var(--cream);text-align:left}
+
+/* goals */
+.goals{list-style:none;counter-reset:g;display:flex;flex-direction:column;gap:0;text-align:left}
+.goals li{counter-increment:g;display:grid;grid-template-columns:40px 1fr;gap:12px;padding:12px 0;border-top:1px solid var(--line);font-size:15px;color:var(--cream)}
+.goals li::before{content:counter(g,decimal-leading-zero);font-family:var(--mono);font-size:12px;color:var(--yellow);padding-top:3px}
+.goals li span{display:block;color:var(--muted);font-size:13px}
+.north{font-family:var(--display);font-weight:900;text-transform:uppercase;font-size:clamp(28px,3vw,40px);line-height:1;color:var(--yellow)}
+
+/* solutions */
+.steps{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:10px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:10px;font-size:15px;line-height:1.5;color:var(--cream)}
+.steps li::before{content:counter(s);font-family:var(--mono);font-size:12px;width:24px;height:24px;border-radius:50%;background:var(--cyan);color:#0B0E17;display:grid;place-items:center;font-weight:500}
+.guard{font-size:14px;line-height:1.5;color:var(--muted);border-left:3px solid var(--cyan);padding-left:12px}
+
+.panel.hl{border-color:var(--yellow);box-shadow:0 0 0 1px rgba(249,200,14,.35),0 0 70px rgba(249,200,14,.16)}
+.panel.hl .steps li::before{background:var(--yellow)}
+.panel.hl .guard{border-left-color:var(--yellow)}
+.end h1{font-size:clamp(56px,9vw,140px)}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.cta a{text-decoration:none;font-weight:700;font-size:15px;padding:14px 22px;border-radius:999px;background:var(--yellow);color:#14120A}
+.cta a.ghost{background:transparent;color:var(--cream);border:1px solid var(--line)}
+footer{position:relative;z-index:2;padding:48px clamp(16px,5vw,80px) 64px;background:linear-gradient(transparent,rgba(5,6,10,.92) 30%)}
+footer h3{font-size:18px;margin-bottom:12px}
+footer ol{columns:2;column-gap:40px;list-style:none;font-size:12px;line-height:1.9;color:var(--muted)}
+footer a{color:#B9BFCD}
+
+/* loader */
+.loader{position:fixed;inset:0;z-index:9;display:grid;place-items:center;background:var(--night);transition:opacity 1s ease}
+.loader.gone{opacity:0;pointer-events:none}
+.loader span{width:12px;height:12px;border-radius:50%;background:var(--yellow);box-shadow:0 0 18px var(--yellow);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(.45);opacity:.45}}
+.w{display:inline-block;will-change:transform,filter,opacity}
+
+@media (max-width:820px){
+  .rail{display:none}
+  .chap,.chap[data-side="right"]{justify-content:center;padding:10vh 16px;align-items:flex-end;min-height:130vh}
+  .chap.hero{align-items:center}
+  .dash{grid-template-columns:1fr 1fr}
+  .sides,.compare{grid-template-columns:1fr}
+  footer ol{columns:1}
+}
+@media (prefers-reduced-motion:reduce){
+  .cue i,.toast i,.loader span{animation:none}
+}
+</style>
+</head>
+<body>
+<canvas id="scene" aria-hidden="true"></canvas>
+<div class="vignette"></div>
+<div class="speed" id="speed"></div>
+<div class="loader" id="loader"><span></span></div>
+
+<header class="top">
+  <a class="brand" href="#start"><i></i>Every ride, verified</a>
+  <a class="deck-link" href="https://claude.ai/artifact/MhVdNeMBZSN7buQK6sSt5U">Open the slide deck</a>
+</header>
+
+<ol class="rail" id="rail" aria-label="Chapters">
+  <li data-for="start">Start</li>
+  <li data-for="problem">Problem</li>
+  <li data-for="pickup">At pickup</li>
+  <li data-for="ride">During the ride</li>
+  <li data-for="cancel">Before pickup</li>
+  <li data-for="numbers">The numbers</li>
+  <li data-for="users">Users</li>
+  <li data-for="goals">Goals</li>
+  <li data-for="sol1">Solutions</li>
+  <li data-for="end">Arrival</li>
+</ol>
+
+<main>
+  <section class="chap hero" id="start" data-side="center">
+    <div style="display:flex;flex-direction:column;gap:22px;align-items:center">
+      <p class="tag"><b>Case study</b> Rapido bike taxi · Rakshita · Nov 2026</p>
+      <h1 id="heroTitle">Every ride,<br><em>verified.</em></h1>
+      <p class="hero-sub">Ride along on a bike taxi commute. Scroll to meet the problems, see the numbers, and find the fixes.</p>
+      <div class="cue"><i></i>Scroll to ride</div>
+    </div>
+  </section>
+
+  <section class="chap" id="problem" data-side="left">
+    <div class="panel">
+      <p class="tag"><b>01</b> The problem</p>
+      <h2>The cheapest way to work takes a lot of thought.</h2>
+      <p>A Rapido bike taxi costs <strong>₹8–10 per km</strong> against ₹22–25 for a cab, and women take about <strong>35% of Rapido’s rides</strong> in larger cities. I take one twice a day. As a woman, choosing it means weighing comfort and safety every time.</p>
+      <p>Rapido’s trust checks end at the OTP. It proves who holds the phone, not who is riding, which bike arrived, or how it is ridden.</p>
+      <p class="hmw">How might we make every bike ride verifiable and safe from pickup to drop?</p>
+      <p class="src">KPMG, Unlocking the Potential of Bike-Taxis in India (2024); Aravind Sanka, YourStory (Nov 2025)</p>
+    </div>
+  </section>
+
+  <section class="chap" id="pickup" data-side="right">
+    <div class="panel">
+      <p class="tag bad"><b>Stop 1</b> At pickup</p>
+      <p class="big bad"><span class="count" data-to="14">14</span>–<span class="count" data-to="16">16</span>%</p>
+      <p class="big-cap">of my 50 rides arrived on a different vehicle than the app showed: <strong>7–8 rides</strong>, by number plate or vehicle type.</p>
+      <div class="compare" aria-label="Illustrative example">
+        <div><small>App showed</small><strong>Honda Activa</strong></div>
+        <div class="no"><small>At the kerb</small><strong>A sports bike</strong></div>
+      </div>
+      <ul class="facts bad">
+        <li><strong>Hyderabad:</strong> mismatch is so common that regular riders just share the OTP and board.</li>
+        <li><strong>Chennai:</strong> a woman facing an aggressive captain couldn’t trace him; the details were wrong.</li>
+        <li><strong>Why:</strong> swapped bikes, shared logins, multiple accounts. Selfie checks are beaten with printed photos.</li>
+      </ul>
+      <p class="src">My 50-ride log; Deccan Chronicle (Nov 2024); The South First (Mar 2025). No survey measures mismatch on any Indian platform.</p>
+    </div>
+  </section>
+
+  <section class="chap" id="ride" data-side="left">
+    <div class="panel">
+      <p class="tag bad"><b>Stop 2</b> During the ride</p>
+      <p class="big bad"><span class="count" data-to="80">80</span>–<span class="count" data-to="86">86</span>%</p>
+      <p class="big-cap">of my rides had irresponsible riding: <strong>40–43 of 50</strong>. Scrolling reels on the mounted phone, speeding, riding on the wrong side to save a few kilometres.</p>
+      <ul class="facts bad">
+        <li><strong>46.2%</strong> of India’s 1,77,175 road deaths in 2024 were two-wheeler riders and pillions.</li>
+        <li>Overspeeding is linked to about <strong>70%</strong> of road deaths.</li>
+        <li>No platform in India publicly reports speed alerts, riding scores or phone-use detection.</li>
+      </ul>
+      <p class="src">My 50-ride log; MoRTH Road Accidents in India 2024, via The Policy Edge; Telangana Today (Jul 2025)</p>
+    </div>
+  </section>
+
+  <section class="chap" id="cancel" data-side="right">
+    <div class="panel">
+      <p class="tag bad"><b>Stop 3</b> Before pickup</p>
+      <div class="toast"><i></i><span>Your captain cancelled the ride<small>Looking for another captain…</small></span></div>
+      <p class="big bad"><span class="count" data-to="82">82</span>%</p>
+      <p class="big-cap">of app-taxi users faced driver cancellations in 2025, up from 75% in 2023. <strong>45%</strong> were charged a cancellation fee, up from 23%.</p>
+      <ul class="facts bad">
+        <li><strong>74%</strong> say drivers cancelled over digital payment or an inconvenient destination.</li>
+        <li>On Rapido, captains renegotiate fares after accepting. A ₹100-capped penalty exists on paper.</li>
+      </ul>
+      <p class="src">LocalCircles surveys across all platforms, via Business Standard (Aug 2026); Business Today (Dec 2024)</p>
+    </div>
+  </section>
+
+  <section class="chap" id="numbers" data-side="center">
+    <div class="panel wide" style="text-align:left">
+      <p class="tag"><b>02</b> The numbers</p>
+      <h2>Every control checks a moment, not the ride.</h2>
+      <div class="dash">
+        <div><span class="n bad"><span class="count" data-to="46.2" data-dec="1">46.2</span>%</span><span class="lbl">of road deaths in 2024 were two-wheeler riders and pillions</span></div>
+        <div><span class="n bad"><span class="count" data-to="82">82</span>%</span><span class="lbl">of app-taxi users faced driver cancellations in 2025</span></div>
+        <div><span class="n bad"><span class="count" data-to="84">84</span>%</span><span class="lbl">were “forced” to cancel when a driver wouldn’t do the ride (Dec 2024)</span></div>
+        <div><span class="n"><span class="count" data-to="35">35</span>%</span><span class="lbl">of Rapido rides in larger cities are taken by women</span></div>
+        <div><span class="n"><span class="count" data-to="55.6" data-dec="1">55.6</span>%</span><span class="lbl">of bike-taxi captains work on two or more apps</span></div>
+        <div><span class="n"><span class="count" data-to="0">0</span></span><span class="lbl">public surveys measure vehicle mismatch on any Indian platform</span></div>
+      </div>
+      <p class="src">MoRTH 2024 via The Policy Edge; LocalCircles via Business Standard (Aug 2026) and LocalCircles (Dec 2024); YourStory (Nov 2025); KPMG (2024)</p>
+    </div>
+  </section>
+
+  <section class="chap" id="users" data-side="center">
+    <div class="panel wide">
+      <p class="tag" style="align-self:center"><b>03</b> Know the users</p>
+      <h2>Two customers ride every trip.</h2>
+      <div class="sides">
+        <div class="side">
+          <h3>Riders</h3>
+          <div class="row"><b>~50%</b><span>of bike-taxi trips are first or last mile; about 36% fall in office peaks</span></div>
+          <div class="row"><b>~35%</b><span>of Rapido rides in larger cities are by women. They need a verified captain and bike, and safe riding</span></div>
+          <div class="row"><b>₹8–10</b><span>per km. Students and budget riders want the lowest fare without trading away safety</span></div>
+        </div>
+        <div class="side">
+          <h3>Captains</h3>
+          <div class="row"><b>52.6%</b><span>drive full-time: about 8 hours and 13 trips a day</span></div>
+          <div class="row"><b>47.4%</b><span>drive part-time, often around their own jobs: about 5.7 hours and 8 trips a day</span></div>
+          <div class="row"><b>30.5%</b><span>are graduates or above, including job seekers</span></div>
+        </div>
+      </div>
+      <p class="log">My log: in 50 rides I met 3 educated captains looking for jobs. One asked me for a referral.</p>
+      <p class="src">KPMG (2024), survey of 2,638 bike-taxi drivers in 9 cities, all platforms; YourStory (Nov 2025)</p>
+    </div>
+  </section>
+
+  <section class="chap" id="goals" data-side="left">
+    <div class="panel">
+      <p class="tag"><b>04</b> Goals</p>
+      <p class="north">North star: the share of rides completed verified, safe and on time.</p>
+      <ol class="goals">
+        <li><div>Verify every ride at pickup<span>Mismatch reports per 1,000 rides</span></div></li>
+        <li><div>Make riding visible<span>Speeding and wrong-side events per 100 km</span></div></li>
+        <li><div>Keep accepted rides<span>Captain cancellations after acceptance</span></div></li>
+        <li><div>Add supply at office peaks<span>Share of peak requests fulfilled</span></div></li>
+        <li><div>Add value beyond the ride<span>Verified Hopr Connect profiles; repeat rides</span></div></li>
+      </ol>
+      <p class="src">Baselines come from a pilot; Rapido does not publish these numbers today</p>
+    </div>
+  </section>
+
+  <section class="chap" id="sol1" data-side="right">
+    <div class="panel">
+      <p class="tag good"><b>Fix 1</b> Live pickup check</p>
+      <h2>Face and plate, proved together, live.</h2>
+      <ol class="steps">
+        <li>At pickup, the captain takes one live photo showing his face and the number plate. No gallery uploads.</li>
+        <li>A blink-or-turn liveness check, so a printed photo fails.</li>
+        <li>The plate is matched to the VAHAN registry: number, make and model.</li>
+        <li>The rider sees “Verified at pickup” before sharing the OTP. “Doesn’t match” pauses the ride.</li>
+      </ol>
+      <p class="guard">Checks run at random pickups, so they can’t be staged. Repeat mismatches lead to suspension.</p>
+    </div>
+  </section>
+
+  <section class="chap" id="sol2" data-side="left">
+    <div class="panel">
+      <p class="tag good"><b>Fix 2</b> Captain profile</p>
+      <h2>Reviews riders can trust, including from women.</h2>
+      <ol class="steps">
+        <li>Before pickup, the rider opens the captain’s profile: verified photo, registered bike, rating.</li>
+        <li>Written reviews show their count and recency, so 4 reviews never look like 400.</li>
+        <li>A “Reviews from women riders” tab shows only what women wrote.</li>
+      </ol>
+      <p class="guard">Reviews publish late and in batches, never linked to a ride, so a captain can’t tell who wrote one or where she was picked up.</p>
+    </div>
+  </section>
+
+  <section class="chap" id="sol3" data-side="right">
+    <div class="panel">
+      <p class="tag good"><b>Fix 3</b> Safe-ride mode</p>
+      <h2>Riding behaviour, visible and counted.</h2>
+      <ol class="steps">
+        <li>Navigation inside the Rapido app, so captains never need to leave it.</li>
+        <li>GPS flags speeding and wrong-side riding; motion sensors flag harsh braking.</li>
+        <li>If Rapido leaves the screen while the bike moves, the captain is alerted and the seconds are logged.</li>
+        <li>The rider can tap “Unsafe riding” mid-ride. Events feed a riding score tied to incentives.</li>
+      </ol>
+      <p class="guard">No phone lock: an app can’t lock a personal phone, and multi-app captains would leave.</p>
+    </div>
+  </section>
+
+  <section class="chap" id="sol4" data-side="left">
+    <div class="panel">
+      <p class="tag good"><b>Fix 4</b> Commute mode</p>
+      <h2>Part-time captains’ commutes become peak supply.</h2>
+      <ol class="steps">
+        <li>The captain sets home, office, departure window and maximum detour.</li>
+        <li>In that window he sees only requests along his route, at the normal fare or a small optional discount.</li>
+        <li>Framed as “share your commute”, with a Commuter captain badge.</li>
+      </ol>
+      <p class="guard">A late or dropped commute ride counts against the captain, and the rider is re-matched at once.</p>
+    </div>
+  </section>
+
+  <section class="chap" id="sol5" data-side="right">
+    <div class="panel">
+      <p class="tag good"><b>Fix 5</b> Hopr Connect</p>
+      <h2>New in the city? Make the commute a learning ride.</h2>
+      <p>A fresher moving to a metro arrives with theory, few friends and no alumni network to lean on. Long workdays leave little time to meet people or learn from them.</p>
+      <ol class="steps">
+        <li>Rider and driver both verify their ID and work email before Connect unlocks.</li>
+        <li>The rider picks an opt-in learning ride: explore a new domain, or go deeper in her own.</li>
+        <li>She’s matched with a verified professional on her route. Pickup and drop are at public points, so no home address is shared.</li>
+        <li>Either person can report the other or leave the match at any time.</li>
+      </ol>
+      <p class="guard">A quiet ride stays the default, women can match with women only, and no job or referral is promised. It lives on Hopr because private cars can’t carry paying passengers without a commercial permit. Today Hopr is Bengaluru only, with about 6,500 active users.</p>
+    </div>
+  </section>
+
+  <section class="chap end" id="end" data-side="center">
+    <div style="display:flex;flex-direction:column;gap:22px;align-items:center">
+      <p class="tag"><b>Arrived</b> Dawn, on time</p>
+      <h1>Every ride,<br><em>verified.</em></h1>
+      <p class="hero-sub">Verify the captain and the bike at pickup. Make riding visible during the trip. Turn commutes into peak supply, and carpools into learning rides.</p>
+      <div class="cta">
+        <a href="https://claude.ai/artifact/MhVdNeMBZSN7buQK6sSt5U">Open the slide deck</a>
+        <a class="ghost" href="#start">Ride again</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <h3>Sources</h3>
+  <ol>
+    <li><a href="https://assets.kpmg.com/content/dam/kpmg/in/pdf/2024/03/unlocking-the-potential-of-bike-taxis-in-india.pdf">KPMG (2024), Unlocking the Potential of Bike-Taxis in India</a></li>
+    <li><a href="https://www.business-standard.com/india-news/app-taxi-users-back-maharashtra-style-penalty-for-driver-cancellations-126080300462_1.html">Business Standard (Aug 2026), LocalCircles cancellation survey</a></li>
+    <li><a href="https://m-www.localcircles.com/a/press/page/taxi-aggregators-dark-patterns">LocalCircles (Dec 2024), taxi app dark patterns</a></li>
+    <li><a href="https://www.policyedge.in/p/morth-road-accidents-report-2024-highways-over-speeding-and-young-adults-remain-key-risks">The Policy Edge, MoRTH Road Accidents 2024</a></li>
+    <li><a href="https://www.deccanchronicle.com/amp/southern-states/telangana/ride-services-provide-one-vehicle-number-another-vehicle-comes-to-pick-you-1840985">Deccan Chronicle (Nov 2024), Hyderabad mismatches</a></li>
+    <li><a href="https://thesouthfirst.com/tamilnadu/mismatch-mayhem-rapido-riders-struggle-with-driver-vehicle-details/">The South First (Mar 2025), Chennai mismatches</a></li>
+    <li><a href="https://telanganatoday.com/cab-drivers-put-passengers-lives-at-risk-watch-videos-reels-on-mobile-while-driving">Telangana Today (Jul 2025), reels while driving</a></li>
+    <li><a href="https://www.businesstoday.in/latest/trends/story/bhikhari-ki-aulad-rapido-driver-insults-and-threatens-mumbai-woman-after-dispute-over-extra-charge-netizens-say-why-is-it-always-rapido-458065-2024-12-20">Business Today (Dec 2024), Mumbai fare dispute</a></li>
+    <li><a href="https://yourstory.com/2025/11/we-plan-to-onboard-more-women-captains-rapido-aravind-sanka">YourStory (Nov 2025), Aravind Sanka on women riders</a></li>
+    <li><a href="https://yourstory.com/2025/08/rapido-launch-car-bikepooling-services-new-app-hopr">YourStory (Aug 2025), Rapido launches Hopr</a></li>
+    <li>Primary research: my own log of 50 Rapido bike rides, 2026</li>
+  </ol>
+</footer>
+
+<script>
+  // if the 3D scene can't start, never leave the story hidden behind the loader
+  setTimeout(function(){ var l=document.getElementById('loader'); if(l) l.classList.add('gone'); }, 5000);
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+<script>
+(function(){ try {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const mobile = innerWidth <= 820;
+  const loader = document.getElementById('loader');
+  const hasGsap = typeof gsap !== 'undefined';
+  if (hasGsap && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollTrigger);
+
+  /* ---------- palette ---------- */
+  const C = {
+    yellow: new THREE.Color('#F9C80E'), coral: new THREE.Color('#FF7A59'), cyan: new THREE.Color('#5CD6E0'),
+    cream: new THREE.Color('#F3EEDD'),
+    nightTop: new THREE.Color('#04060C'), nightBot: new THREE.Color('#172036'),
+    dawnTop: new THREE.Color('#25335A'), dawnBot: new THREE.Color('#F2A85C'),
+    fogNight: new THREE.Color('#0D1220'), fogDawn: new THREE.Color('#8C6A63')
+  };
+
+  /* ---------- renderer & scene ---------- */
+  const canvas = document.getElementById('scene');
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
+  const DPR = Math.min(devicePixelRatio || 1, mobile ? 1.5 : 2);
+  renderer.setPixelRatio(DPR);
+  renderer.setSize(innerWidth, innerHeight, false);
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(C.fogNight.clone(), 0.02);
+  const camera = new THREE.PerspectiveCamera(52, innerWidth/innerHeight, 0.1, 900);
+  camera.position.set(4, 4.2, 9);
+
+  /* ---------- helpers ---------- */
+  function canvasTex(w, h, draw){ const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'), w, h); const t=new THREE.CanvasTexture(c); t.anisotropy=4; return t; }
+  const glowTex = canvasTex(64,64,(g,w,h)=>{ const r=g.createRadialGradient(32,32,0,32,32,32); r.addColorStop(0,'rgba(255,255,255,1)'); r.addColorStop(.25,'rgba(255,255,255,.55)'); r.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=r; g.fillRect(0,0,w,h); });
+  const rand = (a,b)=>a+Math.random()*(b-a);
+
+  /* ---------- sky ---------- */
+  const skyU = { uTop:{value:C.nightTop.clone()}, uBot:{value:C.nightBot.clone()} };
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(600,32,16), new THREE.ShaderMaterial({
+    side:THREE.BackSide, depthWrite:false, fog:false, uniforms:skyU,
+    vertexShader:'varying vec3 vP; void main(){ vP=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+    fragmentShader:'uniform vec3 uTop; uniform vec3 uBot; varying vec3 vP; void main(){ float h=clamp(vP.y*1.6+0.08,0.0,1.0); gl_FragColor=vec4(mix(uBot,uTop,pow(h,0.7)),1.0); }'
+  }));
+  scene.add(sky);
+
+  /* ---------- lights ---------- */
+  const hemi = new THREE.HemisphereLight(0x5a6a9a, 0x0b0d14, 0.55); scene.add(hemi);
+  const sun = new THREE.DirectionalLight(0xffd6a0, 0.0); sun.position.set(-20,12,-60); scene.add(sun);
+  const amb = new THREE.AmbientLight(0x23293d, 0.6); scene.add(amb);
+
+  /* ---------- road ---------- */
+  const ROAD_W = 14, ROAD_L = 420, TILE = 10;
+  const roadTex = canvasTex(256,256,(g,w,h)=>{
+    g.fillStyle='#14161d'; g.fillRect(0,0,w,h);
+    for(let i=0;i<1400;i++){ g.fillStyle=`rgba(255,255,255,${Math.random()*0.035})`; g.fillRect(Math.random()*w,Math.random()*h,2,2); }
+    const x = u => (u/ROAD_W + .5)*w;
+    g.fillStyle='rgba(243,238,221,.75)'; g.fillRect(x(-6.8),0,4,h); g.fillRect(x(6.8)-4,0,4,h);
+    g.fillStyle='rgba(249,200,14,.85)'; g.fillRect(x(0)-7,0,4,h); g.fillRect(x(0)+3,0,4,h);
+    g.fillStyle='rgba(243,238,221,.6)'; g.fillRect(x(-3.5)-2,0,4,h*.45); g.fillRect(x(3.5)-2,0,4,h*.45);
+  });
+  roadTex.wrapS = roadTex.wrapT = THREE.RepeatWrapping; roadTex.repeat.set(1, ROAD_L/TILE);
+  const road = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_W, ROAD_L), new THREE.MeshStandardMaterial({map:roadTex, roughness:.85, metalness:.05}));
+  road.rotation.x = -Math.PI/2; road.position.z = -ROAD_L/2 + 20; scene.add(road);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, ROAD_L), new THREE.MeshStandardMaterial({color:0x0c0e14, roughness:1}));
+  ground.rotation.x = -Math.PI/2; ground.position.set(0,-0.02,-ROAD_L/2+20); scene.add(ground);
+
+  /* ---------- buildings (instanced, treadmill) ---------- */
+  const L = 320;
+  const winTex = canvasTex(128,256,(g,w,h)=>{
+    g.fillStyle='#000'; g.fillRect(0,0,w,h);
+    const cols=6, rows=18, cw=w/cols, rh=h/rows;
+    for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+      if(Math.random()<.42){ const warm=Math.random(); g.fillStyle = warm<.6?'#f6c35a':(warm<.85?'#f3eedd':'#7fd3dc'); g.globalAlpha=rand(.35,.95); g.fillRect(c*cw+4,r*rh+3,cw-8,rh-6); }
+    }
+    g.globalAlpha=1;
+  });
+  const BN = mobile ? 90 : 150;
+  const bMat = new THREE.MeshStandardMaterial({color:0x0f121b, roughness:.9, emissive:0xffffff, emissiveMap:winTex, emissiveIntensity:.85});
+  const bMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1), bMat, BN);
+  const bData = [];
+  for(let i=0;i<BN;i++){
+    const side = i%2 ? 1 : -1;
+    bData.push({x: side*rand(10,26), z: rand(0,L), h: rand(5,26), w: rand(4,8), d: rand(5,10)});
+  }
+  scene.add(bMesh);
+
+  /* ---------- street lights ---------- */
+  const SL_GAP = 16, SLN = Math.floor(L/SL_GAP)*2;
+  const poleMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(.06,.08,6,6), new THREE.MeshStandardMaterial({color:0x2a2f3d, roughness:.6}), SLN);
+  scene.add(poleMesh);
+  const lampGeo = new THREE.BufferGeometry(); lampGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(SLN*3),3));
+  const lampMat = new THREE.PointsMaterial({size:3.2, map:glowTex, color:0xffc766, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending});
+  const lamps = new THREE.Points(lampGeo, lampMat); scene.add(lamps);
+
+  /* ---------- bokeh / dust that reacts to the cursor ---------- */
+  const PN = mobile ? 1400 : 3200;
+  const pGeo = new THREE.BufferGeometry();
+  const pPos = new Float32Array(PN*3), pCol = new Float32Array(PN*3), pSize = new Float32Array(PN), pSeed = new Float32Array(PN);
+  const pal = [C.yellow, C.cream, C.cyan, new THREE.Color('#f6c35a')];
+  for(let i=0;i<PN;i++){
+    const nearRoad = Math.random()<.45;
+    pPos[i*3] = nearRoad ? rand(-9,9) : rand(-60,60);
+    pPos[i*3+1] = nearRoad ? rand(.2,6) : rand(.5,28);
+    pPos[i*3+2] = rand(0,L);
+    const c = pal[(Math.random()*pal.length)|0]; pCol[i*3]=c.r; pCol[i*3+1]=c.g; pCol[i*3+2]=c.b;
+    pSize[i] = rand(.6,2.4); pSeed[i] = Math.random();
+  }
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos,3));
+  pGeo.setAttribute('aColor', new THREE.BufferAttribute(pCol,3));
+  pGeo.setAttribute('aSize', new THREE.BufferAttribute(pSize,1));
+  pGeo.setAttribute('aSeed', new THREE.BufferAttribute(pSeed,1));
+  const pU = { uTravel:{value:0}, uL:{value:L}, uTime:{value:0}, uPix:{value:DPR}, uMouse:{value:new THREE.Vector2(9,9)}, uAspect:{value:innerWidth/innerHeight}, uDim:{value:1} };
+  const particles = new THREE.Points(pGeo, new THREE.ShaderMaterial({
+    uniforms:pU, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
+    vertexShader:`
+      attribute vec3 aColor; attribute float aSize; attribute float aSeed;
+      uniform float uTravel; uniform float uL; uniform float uTime; uniform float uPix; uniform vec2 uMouse; uniform float uAspect;
+      varying vec3 vColor; varying float vGlow; varying float vTw;
+      void main(){
+        vec3 p = position;
+        p.z = mod(p.z + uTravel, uL) - uL + 14.0;
+        p.y += sin(uTime*.5 + aSeed*6.2831)*.35;
+        vec4 mv = modelViewMatrix*vec4(p,1.0);
+        vec4 clip = projectionMatrix*mv;
+        vec2 ndc = clip.xy/clip.w;
+        vec2 d = ndc - uMouse; d.x *= uAspect;
+        float dist = length(d);
+        float push = smoothstep(.38, 0., dist);
+        vec2 dir = d/(dist+1e-4); dir.x /= uAspect;
+        ndc += dir*push*.14;
+        clip.xy = ndc*clip.w;
+        gl_Position = clip;
+        vGlow = push; vColor = aColor;
+        vTw = .65 + .35*sin(uTime*2.0 + aSeed*40.0);
+        gl_PointSize = aSize*uPix*(1.0+push*2.2)*(34.0/max(1.0,-mv.z));
+      }`,
+    fragmentShader:`
+      uniform float uDim; varying vec3 vColor; varying float vGlow; varying float vTw;
+      void main(){ float r = length(gl_PointCoord-.5); float a = smoothstep(.5,.0,r);
+        gl_FragColor = vec4(vColor*(1.0+vGlow*1.8), a*(.38*vTw+vGlow*.6)*uDim); }`
+  }));
+  particles.frustumCulled = false; scene.add(particles);
+
+  /* ---------- bike taxi ---------- */
+  function makeBike(m){
+    const g = new THREE.Group();
+    const add = (geo, mat, x,y,z, rx=0,ry=0,rz=0)=>{ const o=new THREE.Mesh(geo,mat); o.position.set(x,y,z); o.rotation.set(rx,ry,rz); g.add(o); return o; };
+    const wheels = [];
+    [[-0.78],[0.72]].forEach(([z])=>{ const wg=new THREE.Group(); wg.position.set(0,.32,z); const t=new THREE.Mesh(new THREE.TorusGeometry(.26,.09,10,22), m.rubber); t.rotation.y=Math.PI/2; wg.add(t); const hub=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,.2,10), m.dark); hub.rotation.z=Math.PI/2; wg.add(hub); g.add(wg); wheels.push(wg); });
+    add(new THREE.BoxGeometry(.5,.12,.95), m.dark, 0,.44,0);
+    add(new THREE.BoxGeometry(.52,.8,.16), m.body, 0,.82,-.6, -.22);
+    add(new THREE.BoxGeometry(.56,.42,.8), m.body, 0,.72,.45);
+    add(new THREE.BoxGeometry(.46,.12,.85), m.dark, 0,.98,.36);
+    add(new THREE.CylinderGeometry(.04,.04,.62,8), m.dark, 0,1.06,-.7, -.3);
+    add(new THREE.BoxGeometry(.78,.05,.05), m.dark, 0,1.34,-.78);
+    const head = add(new THREE.SphereGeometry(.09,12,10), m.light, 0,1.16,-.8);
+    const tail = add(new THREE.BoxGeometry(.26,.06,.05), m.tail, 0,.9,.86);
+    const phone = add(new THREE.PlaneGeometry(.15,.25), m.phone, 0,1.44,-.7, -.45);
+    const plate = add(new THREE.PlaneGeometry(.32,.13), m.plate, 0,.62,.86);
+    // captain
+    add(new THREE.CylinderGeometry(.19,.23,.62,10), m.jacket, 0,1.36,.02, .12);
+    add(new THREE.SphereGeometry(.18,14,12), m.helmet, 0,1.86,-.04);
+    add(new THREE.BoxGeometry(.08,.08,.56), m.jacket, .2,1.46,-.36, .35);
+    add(new THREE.BoxGeometry(.08,.08,.56), m.jacket, -.2,1.46,-.36, .35);
+    add(new THREE.BoxGeometry(.14,.48,.14), m.dark, .16,.76,-.18);
+    add(new THREE.BoxGeometry(.14,.48,.14), m.dark, -.16,.76,-.18);
+    // pillion
+    add(new THREE.CylinderGeometry(.17,.21,.58,10), m.pillion, 0,1.38,.6, .05);
+    add(new THREE.SphereGeometry(.17,14,12), m.helmet2, 0,1.86,.6);
+    add(new THREE.BoxGeometry(.13,.46,.13), m.dark, .26,.76,.62);
+    add(new THREE.BoxGeometry(.13,.46,.13), m.dark, -.26,.76,.62);
+    g.userData = {wheels, phone, head, tail, plate};
+    return g;
+  }
+  const plateTex = canvasTex(256,104,(g,w,h)=>{ g.fillStyle='#f3eedd'; g.fillRect(0,0,w,h); g.strokeStyle='#111'; g.lineWidth=6; g.strokeRect(3,3,w-6,h-6); g.fillStyle='#111'; g.font='bold 44px monospace'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('TS 09 XY 0000',w/2,h/2+2); });
+  const phoneMat = new THREE.MeshBasicMaterial({color:0x3a4466});
+  const bikeMats = {
+    body:new THREE.MeshStandardMaterial({color:0xF9C80E, roughness:.35, metalness:.25, emissive:0x3a2c00, emissiveIntensity:.35}),
+    dark:new THREE.MeshStandardMaterial({color:0x15171d, roughness:.6}),
+    rubber:new THREE.MeshStandardMaterial({color:0x0a0a0c, roughness:.9}),
+    light:new THREE.MeshBasicMaterial({color:0xfff3c4}),
+    tail:new THREE.MeshBasicMaterial({color:0xff3b2f}),
+    phone:phoneMat,
+    plate:new THREE.MeshBasicMaterial({map:plateTex}),
+    jacket:new THREE.MeshStandardMaterial({color:0x2b3242, roughness:.8}),
+    helmet:new THREE.MeshStandardMaterial({color:0xF9C80E, roughness:.3, metalness:.2}),
+    pillion:new THREE.MeshStandardMaterial({color:0x6d4a6e, roughness:.8}),
+    helmet2:new THREE.MeshStandardMaterial({color:0xf3eedd, roughness:.3})
+  };
+  const bike = makeBike(bikeMats); scene.add(bike);
+  const headLight = new THREE.SpotLight(0xfff0c8, 3.2, 30, .42, .5, 1.2);
+  headLight.position.set(0,1.2,-.85); bike.add(headLight); headLight.target.position.set(0,0,-12); bike.add(headLight.target);
+  const bikeGlow = new THREE.PointLight(0xF9C80E, .6, 4); bikeGlow.position.set(0,1.2,.5); bike.add(bikeGlow);
+
+  // backup captain waiting in the queue, with a cyan halo
+  const backup = makeBike(bikeMats); backup.scale.setScalar(.0001); scene.add(backup);
+  const halo2 = new THREE.Mesh(new THREE.RingGeometry(1.25,1.36,64), new THREE.MeshBasicMaterial({color:C.cyan, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide}));
+  halo2.rotation.x = -Math.PI/2; halo2.position.y = .03; scene.add(halo2);
+  const sol6El = document.getElementById('sol6');
+  let hoff = 0;
+  const sm = (a,b,x)=>{ x = Math.min(1, Math.max(0, (x-a)/(b-a))); return x*x*(3-2*x); };
+
+  // ghost bike: what the app showed (mismatch), later the verified scan
+  const ghostMat = new THREE.MeshBasicMaterial({color:C.coral.clone(), wireframe:true, transparent:true, opacity:0, depthWrite:false});
+  const gm = {}; Object.keys(bikeMats).forEach(k=>gm[k]=ghostMat);
+  const ghost = makeBike(gm); scene.add(ghost);
+
+  // halo ring under the bike (verified) and search ring (cancelled)
+  const halo = new THREE.Mesh(new THREE.RingGeometry(1.25,1.36,64), new THREE.MeshBasicMaterial({color:C.cyan, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide}));
+  halo.rotation.x = -Math.PI/2; halo.position.y = .03; scene.add(halo);
+  const searchRings = [0,1,2].map(i=>{ const r=new THREE.Mesh(new THREE.RingGeometry(.9,1.0,64), new THREE.MeshBasicMaterial({color:C.coral, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide})); r.rotation.x=-Math.PI/2; r.position.y=.04; scene.add(r); return r; });
+
+  // route line ahead (commute mode)
+  const routeMat = new THREE.ShaderMaterial({transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
+    uniforms:{uOp:{value:0}, uT:{value:0}, uCol:{value:C.cyan}},
+    vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+    fragmentShader:'uniform float uOp; uniform float uT; uniform vec3 uCol; varying vec2 vUv; void main(){ float edge=smoothstep(.0,.35,vUv.x)*smoothstep(1.,.65,vUv.x); float dash=.55+.45*step(.5,fract(vUv.y*60.0+uT)); float fade=smoothstep(1.,.15,vUv.y); gl_FragColor=vec4(uCol, edge*dash*fade*uOp); }'});
+  const route = new THREE.Mesh(new THREE.PlaneGeometry(.9,160), routeMat);
+  route.rotation.x = -Math.PI/2; route.position.y = .05; scene.add(route);
+
+  // oncoming headlights (wrong-side riding)
+  const ON = 6; const onGeo = new THREE.BufferGeometry(); onGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ON*2*3),3));
+  const onMat = new THREE.PointsMaterial({size:2.6, map:glowTex, color:0xfff2d0, transparent:true, opacity:0, depthWrite:false, blending:THREE.AdditiveBlending});
+  const oncoming = new THREE.Points(onGeo, onMat); oncoming.frustumCulled=false; scene.add(oncoming);
+  const onData = Array.from({length:ON},(_,i)=>({x: i%2?1.75:5.25, z: -i*40-20}));
+
+  // Hopr car alongside
+  const car = new THREE.Group();
+  (function(){
+    const cm = new THREE.MeshStandardMaterial({color:0xe9e2cf, roughness:.4, metalness:.3});
+    const glass = new THREE.MeshStandardMaterial({color:0x1b2a3a, roughness:.2, metalness:.6, emissive:0x0e2a33, emissiveIntensity:.6});
+    const b = new THREE.Mesh(new THREE.BoxGeometry(1.9,.62,4.1), cm); b.position.y=.62; car.add(b);
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(1.6,.55,2.1), glass); cab.position.set(0,1.18,.15); car.add(cab);
+    [[.85,-1.3],[-.85,-1.3],[.85,1.3],[-.85,1.3]].forEach(([x,z])=>{ const w=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.24,14), bikeMats.rubber); w.rotation.z=Math.PI/2; w.position.set(x,.34,z); car.add(w); });
+    [[.6,-2.06],[-.6,-2.06]].forEach(([x,z])=>{ const l=new THREE.Mesh(new THREE.SphereGeometry(.1,8,8), bikeMats.light); l.position.set(x,.7,z); car.add(l); });
+    const bubble = new THREE.Sprite(new THREE.SpriteMaterial({map:canvasTex(256,128,(g,w,h)=>{ g.fillStyle='#5CD6E0'; g.beginPath(); g.moveTo(30,10); g.lineTo(w-10,10); g.quadraticCurveTo(w-2,10,w-2,30); g.lineTo(w-2,80); g.quadraticCurveTo(w-2,98,w-20,98); g.lineTo(70,98); g.lineTo(40,122); g.lineTo(46,98); g.lineTo(26,98); g.quadraticCurveTo(8,98,8,80); g.lineTo(8,30); g.quadraticCurveTo(8,10,30,10); g.fill(); g.fillStyle='#0B0E17'; for(let i=0;i<3;i++){ g.beginPath(); g.arc(90+i*38,54,11,0,Math.PI*2); g.fill(); } }), transparent:true, depthWrite:false}));
+    bubble.scale.set(1.4,.7,1); bubble.position.set(0,2.35,0); car.add(bubble); car.userData.bubble = bubble;
+  })();
+  car.position.set(-5.25,0,-1.5); car.scale.setScalar(.0001); scene.add(car);
+
+  /* ---------- chapter presets (blended by scroll) ---------- */
+  const KEYS = ['speed','mismatch','unsafe','wrong','cancel','dawn','verify','safe','route','car','dim','queue'];
+  const base = {speed:1, mismatch:0, unsafe:0, wrong:0, cancel:0, dawn:0, verify:0, safe:0, route:0, car:0, dim:1, queue:0};
+  const P = {
+    start:  {speed:.55, cam:[4.2,4.4,9.5,  0,.7,-9]},
+    problem:{speed:1,   cam:[-2.6,2.3,5.6, .3,1,-6]},
+    pickup: {speed:.18, mismatch:1, cam:[3.8,1.9,3.6, .55,.9,-.3]},
+    ride:   {speed:1.7, unsafe:1, wrong:1, cam:[-2.4,1.7,4.2, -.2,1.1,-7]},
+    cancel: {speed:.04, cancel:1, cam:[.4,8.6,5.2, 0,0,-1.5]},
+    numbers:{speed:.8,  dim:.55, cam:[0,14,17, 0,0,-34]},
+    users:  {speed:1,   cam:[-4.2,2.5,4.6, 0,1,-3]},
+    goals:  {speed:1,   dawn:.2, cam:[2.6,3.2,7.4, 0,1,-10]},
+    sol1:   {speed:.2,  dawn:.35, verify:1, cam:[3.4,1.8,3.4, .3,.9,-.3]},
+    sol2:   {speed:.8,  dawn:.48, verify:.45, cam:[-3.2,2.1,3.8, 0,1.1,-1]},
+    sol3:   {speed:1.1, dawn:.6,  safe:1, cam:[1.4,1.6,3.6, 0,1.1,-7]},
+    sol4:   {speed:1.2, dawn:.74, safe:1, route:1, cam:[.8,6.4,8.6, 0,0,-22]},
+    sol5:   {speed:1,   dawn:.86, safe:1, route:.35, car:1, cam:[4.6,2.7,5.4, -1.6,1,-2.2]},
+    end:    {speed:.7,  dawn:1,   safe:1, verify:.3, cam:[5.2,5.2,10.5, 0,1,-12]}
+  };
+  const sections = [...document.querySelectorAll('.chap')].map(el=>({el, p:Object.assign({}, base, P[el.id]||{})}));
+  const cur = Object.assign({}, base, P.start); cur.cam = P.start.cam.slice();
+  const tgt = Object.assign({}, cur); tgt.cam = cur.cam.slice();
+
+  function computeTargets(){
+    const vc = innerHeight/2; let tot = 0;
+    KEYS.forEach(k=>tgt[k]=0); for(let i=0;i<6;i++) tgt.cam[i]=0;
+    let best=null, bestD=1e9;
+    sections.forEach(s=>{
+      const r = s.el.getBoundingClientRect(); const c = r.top + r.height/2; const d = Math.abs(c-vc);
+      if(d<bestD){bestD=d;best=s;}
+      let w = Math.max(0, 1 - d/(r.height*.62)); w = w*w*(3-2*w);
+      if(w>0){ tot+=w; KEYS.forEach(k=>tgt[k]+=s.p[k]*w); for(let i=0;i<6;i++) tgt.cam[i]+=s.p.cam[i]*w; }
+    });
+    if(tot<1e-4){ KEYS.forEach(k=>tgt[k]=best.p[k]); tgt.cam = best.p.cam.slice(); }
+    else { KEYS.forEach(k=>tgt[k]/=tot); for(let i=0;i<6;i++) tgt.cam[i]/=tot; }
+    // stay at dawn after the end, so the footer is calm
+    if(scrollY + innerHeight >= document.documentElement.scrollHeight - 4){ Object.assign(tgt, {dawn:1, safe:1}); }
+  }
+
+  /* ---------- input ---------- */
+  const mouse = {x:0,y:0,tx:0,ty:0, has:false};
+  addEventListener('pointermove', e=>{ mouse.has=true; mouse.tx = (e.clientX/innerWidth)*2-1; mouse.ty = -(e.clientY/innerHeight)*2+1; }, {passive:true});
+  addEventListener('pointerleave', ()=>{ mouse.has=false; });
+
+  /* ---------- smooth scroll ---------- */
+  let lenis = null;
+  if(!reduce && typeof Lenis !== 'undefined'){
+    lenis = new Lenis({duration:1.25, easing:t=>Math.min(1,1.001-Math.pow(2,-10*t)), smoothWheel:true});
+    if(hasGsap){ lenis.on('scroll', ScrollTrigger.update); gsap.ticker.add(t=>lenis.raf(t*1000)); gsap.ticker.lagSmoothing(0); }
+    else { const raf = t=>{ lenis.raf(t); requestAnimationFrame(raf); }; requestAnimationFrame(raf); }
+    lenis.stop();
+  }
+  document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click', e=>{ const t=document.querySelector(a.getAttribute('href')); if(!t) return; e.preventDefault(); if(lenis) lenis.scrollTo(t,{duration:1.8}); else t.scrollIntoView({behavior: reduce?'auto':'smooth'}); }));
+
+  /* ---------- route rail ---------- */
+  const railItems = [...document.querySelectorAll('#rail li')];
+  const railMap = {sol1:'sol1', sol2:'sol1', sol3:'sol1', sol4:'sol1', sol5:'sol1', sol6:'sol1'};
+  function updateRail(){
+    const vc = innerHeight/2; let id = 'start';
+    sections.forEach(s=>{ const r=s.el.getBoundingClientRect(); if(r.top<=vc) id=s.el.id; });
+    id = railMap[id] || id;
+    railItems.forEach(li=>li.classList.toggle('on', li.dataset.for===id));
+  }
+
+  /* ---------- counters ---------- */
+  if(hasGsap && !reduce){
+    document.querySelectorAll('.count').forEach(el=>{
+      const to = parseFloat(el.dataset.to), dec = parseInt(el.dataset.dec||'0',10); const o={v:0};
+      ScrollTrigger.create({trigger:el, start:'top 85%', once:true, onEnter:()=>{ gsap.fromTo(o,{v:0},{v:to, duration:1.6, ease:'power2.out', onUpdate:()=>{ el.textContent = o.v.toFixed(dec); }, onComplete:()=>{ el.textContent = to.toFixed(dec); }}); }});
+    });
+  }
+
+  /* ---------- hero intro ---------- */
+  function splitWords(el){
+    const walk = node=>{ [...node.childNodes].forEach(n=>{
+      if(n.nodeType===3){ const frag=document.createDocumentFragment(); n.textContent.split(/(\s+)/).forEach(part=>{ if(!part) return; if(/^\s+$/.test(part)) frag.appendChild(document.createTextNode(part)); else { const s=document.createElement('span'); s.className='w'; s.textContent=part; frag.appendChild(s); } }); n.replaceWith(frag); }
+      else if(n.nodeType===1 && n.tagName!=='BR') walk(n);
+    }); };
+    walk(el);
+  }
+  function intro(){
+    loader.classList.add('gone');
+    if(!hasGsap || reduce){ if(lenis) lenis.start(); return; }
+    const h = document.getElementById('heroTitle'); splitWords(h);
+    const words = h.querySelectorAll('.w');
+    gsap.fromTo(words, {opacity:0, y:30, filter:'blur(12px)'}, {opacity:1, y:0, filter:'blur(0px)', duration:1.1, stagger:.09, ease:'power3.out', delay:.35, clearProps:'filter'});
+    gsap.fromTo('#start .tag, #start .hero-sub, #start .cue', {opacity:0, y:16}, {opacity:1, y:0, duration:.9, stagger:.12, ease:'power3.out', delay:.9});
+    gsap.fromTo('.top, .rail', {opacity:0}, {opacity:1, duration:1, delay:1.1});
+    gsap.fromTo(camState, {k:0}, {k:1, duration:2.4, ease:'expo.inOut'});
+    setTimeout(()=>{ if(lenis) lenis.start(); }, 900);
+  }
+  const camState = {k:1};
+
+  /* ---------- resize ---------- */
+  addEventListener('resize', ()=>{ renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); pU.uAspect.value = camera.aspect; });
+
+  /* ---------- loop ---------- */
+  const dummy = new THREE.Object3D();
+  let travel = 0, last = performance.now(), t = 0, started = false;
+  const LANE = -1.75, WRONG = 1.75;
+  const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), introFrom = new THREE.Vector3(9,16,26);
+  const tmpTop = new THREE.Color(), tmpBot = new THREE.Color(), tmpFog = new THREE.Color();
+  const phoneCols = [new THREE.Color('#ff5fa2'), new THREE.Color('#5c7cff'), new THREE.Color('#ffd24a'), new THREE.Color('#38e0c2')];
+  let phoneIdx = 0, phoneTimer = 0;
+
+  function frame(now){
+    const dt = Math.min(.05, (now-last)/1000); last = now; t += dt;
+    computeTargets(); updateRail();
+    const ease = Math.min(1, dt*2.4);
+    KEYS.forEach(k=>cur[k] += (tgt[k]-cur[k])*ease);
+    for(let i=0;i<6;i++) cur.cam[i] += (tgt.cam[i]-cur.cam[i])*Math.min(1, dt*1.8);
+    mouse.x += (mouse.tx-mouse.x)*Math.min(1,dt*3); mouse.y += (mouse.ty-mouse.y)*Math.min(1,dt*3);
+
+    const vel = lenis ? Math.abs(lenis.velocity||0) : 0;
+    const speed = (reduce ? 4 : 12) * cur.speed + Math.min(vel, 60)*.35;
+    travel += speed*dt;
+
+    // road & world treadmill
+    roadTex.offset.y = travel/TILE;
+    for(let i=0;i<BN;i++){ const b=bData[i]; const z=((b.z+travel)%L)-L+20; dummy.position.set(b.x, b.h/2, z); dummy.scale.set(b.w,b.h,b.d); dummy.rotation.set(0,0,0); dummy.updateMatrix(); bMesh.setMatrixAt(i,dummy.matrix); }
+    bMesh.instanceMatrix.needsUpdate = true;
+    const lp = lampGeo.attributes.position.array; let li=0;
+    for(let i=0;i<SLN/2;i++){ const z=((i*SL_GAP+travel)%L)-L+20; [-7.6,7.6].forEach(x=>{ dummy.position.set(x,3,z); dummy.scale.set(1,1,1); dummy.updateMatrix(); poleMesh.setMatrixAt(li,dummy.matrix); lp[li*3]=x*.93; lp[li*3+1]=6.05; lp[li*3+2]=z; li++; }); }
+    poleMesh.instanceMatrix.needsUpdate = true; lampGeo.attributes.position.needsUpdate = true;
+    pU.uTravel.value = travel; pU.uTime.value = t;
+    pU.uMouse.value.set(mouse.has ? mouse.x : 9, mouse.has ? mouse.y : 9);
+    pU.uDim.value = .7 + .3*cur.dim;
+
+    // bike state
+    const wrongK = cur.wrong*(1-cur.safe);
+    const bx = LANE + (WRONG-LANE)*wrongK;
+    const unsafeK = cur.unsafe*(1-cur.safe);
+    // backup hand-off, scrubbed by scroll through the highlighted chapter
+    const hT = 0;
+    hoff += (hT - hoff)*Math.min(1, dt*3);
+    const q = cur.queue;
+    const leave = sm(.18,.55,hoff)*q, fall = sm(.35,.8,hoff)*q, arrive = sm(.45,.85,hoff)*q;
+    bike.position.x = bx + (-6.4 - bx)*leave;
+    bike.position.z = 30*fall;
+    const bq = Math.max(.0001, Math.min(1, q*1.4));
+    backup.scale.setScalar(bq); backup.visible = q > .02;
+    backup.position.set(LANE + 1.2*(1-arrive), Math.sin(t*9+1)*.01, 3.6*(1-arrive));
+    backup.rotation.z = Math.sin(t*1.3)*.015;
+    backup.userData.wheels.forEach(w=>w.rotation.x -= speed*dt/.32);
+    halo2.position.set(backup.position.x, .03, backup.position.z);
+    halo2.material.opacity = q*(.5+.3*Math.sin(t*3));
+    bike.position.y = Math.sin(t*9)*.01*cur.speed;
+    bike.rotation.z = Math.sin(t*2.6)*.13*unsafeK + Math.sin(t*1.1)*.015;
+    bike.rotation.y = Math.sin(t*1.7)*.08*unsafeK;
+    bike.userData.wheels.forEach(w=>w.rotation.x -= speed*dt/.32);
+    // phone: navigation glow normally, flickering reels when unsafe, dark when safe
+    phoneTimer += dt; if(phoneTimer > .22){ phoneTimer = 0; phoneIdx = (phoneIdx+1)%phoneCols.length; }
+    const navCol = tmpTop.set('#3a4466');
+    phoneMat.color.copy(navCol).lerp(phoneCols[phoneIdx], reduce ? unsafeK*.6 : unsafeK).multiplyScalar(1 - .75*cur.safe);
+    headLight.intensity = 3.2 + .8*cur.safe;
+
+    // ghost bike: what the app showed, then the verified scan
+    const gOff = 1.2*cur.mismatch*(1-cur.verify);
+    ghost.position.set(bx + gOff, 0, 0); ghost.rotation.copy(bike.rotation);
+    ghostMat.color.copy(C.coral).lerp(C.cyan, cur.verify);
+    ghostMat.opacity = Math.min(.85, cur.mismatch*.85 + cur.verify*.7);
+    ghost.visible = ghostMat.opacity > .01;
+    ghost.userData.wheels.forEach((w,i)=>w.rotation.x = bike.userData.wheels[i].rotation.x);
+
+    halo.position.x = bx; halo.material.opacity = cur.verify*(.55+.35*Math.sin(t*3));
+    halo.scale.setScalar(1 + .06*Math.sin(t*3));
+    const cancelFlash = q*sm(.05,.2,hoff)*(1-sm(.45,.6,hoff));
+    searchRings.forEach((r,i)=>{ const ph = ((t*.6 + i/3)%1); r.position.set(bike.position.x,.04,bike.position.z); r.scale.setScalar(1+ph*5); r.material.opacity = Math.max(cur.cancel, cancelFlash)*(1-ph)*.8; });
+
+    routeMat.uniforms.uOp.value = cur.route*.9; routeMat.uniforms.uT.value = travel*.37;
+    route.position.set(bx, .05, -80.5);
+
+    // oncoming traffic when riding on the wrong side
+    const op = onGeo.attributes.position.array;
+    onData.forEach((o,i)=>{ o.z += (speed + 18)*dt; if(o.z > 12) o.z -= 240; op[i*6]=o.x-.45; op[i*6+1]=.75; op[i*6+2]=o.z; op[i*6+3]=o.x+.45; op[i*6+4]=.75; op[i*6+5]=o.z; });
+    onGeo.attributes.position.needsUpdate = true; onMat.opacity = wrongK*.95;
+
+    // Hopr car
+    const cs = Math.max(.0001, cur.car); car.scale.setScalar(cs); car.visible = cur.car > .02;
+    car.position.set(-5.25, 0, -1.6 + Math.sin(t*.5)*.25);
+    car.children.forEach(c=>{ if(c.geometry && c.geometry.type==='CylinderGeometry') c.rotation.x -= speed*dt/.34; });
+    car.userData.bubble.material.opacity = Math.max(0, (cur.car-.6)/.4);
+
+    // sky, fog, light
+    tmpTop.copy(C.nightTop).lerp(C.dawnTop, cur.dawn); tmpBot.copy(C.nightBot).lerp(C.dawnBot, cur.dawn);
+    skyU.uTop.value.copy(tmpTop); skyU.uBot.value.copy(tmpBot);
+    tmpFog.copy(C.fogNight).lerp(C.fogDawn, cur.dawn); scene.fog.color.copy(tmpFog); scene.fog.density = .02 - .006*cur.dawn;
+    sun.intensity = cur.dawn*1.1; hemi.intensity = .55 + cur.dawn*.5;
+    bMat.emissiveIntensity = .85 - .45*cur.dawn; lampMat.opacity = 1 - .7*cur.dawn;
+
+    // camera
+    const c = cur.cam; const k = camState.k;
+    camPos.set(c[0]+bx*.55 + mouse.x*.7, c[1] + mouse.y*.35, c[2]);
+    if(k<1) camPos.lerp(introFrom, 1-k);
+    camLook.set(c[3]+bx*.55 + mouse.x*.25, c[4] + mouse.y*.15, c[5]);
+    const shake = unsafeK*.03*Math.sin(t*23);
+    camera.position.set(camPos.x + shake, camPos.y + shake*.6, camPos.z);
+    camera.lookAt(camLook);
+    camera.rotation.z += -mouse.x*.02 + Math.sin(t*2.6)*.01*unsafeK;
+
+    document.getElementById('speed').style.opacity = Math.min(.85, vel/45 + unsafeK*.18);
+
+    renderer.render(scene, camera);
+    if(!started){ started = true; setTimeout(intro, 250); }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  addEventListener('load', ()=>{ if(hasGsap && typeof ScrollTrigger!=='undefined') ScrollTrigger.refresh(); });
+} catch(err) {
+  // no WebGL or a library failed to load: show the story as a plain page
+  document.getElementById('loader').classList.add('gone');
+  document.getElementById('scene').style.display = 'none';
+  document.body.style.background = 'radial-gradient(ellipse at 50% 30%, #172036, #0B0E17 70%)';
+  console.error(err);
+} })();
+</script>
+<a id="bp-back" href="https://claude.ai/artifact/6E99D6mDh7uaY3M7A7fPAY" target="_blank" rel="noopener" style="position:fixed;top:14px;left:14px;z-index:2147483647;padding:10px 18px;border-radius:999px;background:#111;color:#FFD60A;font:700 13px/1 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,.35);border:2px solid #FFD60A">← Back to portfolio</a>
+<script>(function(){var a=document.getElementById('bp-back');if(!a)return;a.addEventListener('click',function(e){if(window.opener||history.length<=1){e.preventDefault();window.close();setTimeout(function(){window.open(a.href,'_blank','noopener')},250)}})})();</script>
+</body>
+</html>
+</untrusted-document-4e926ece1407>
